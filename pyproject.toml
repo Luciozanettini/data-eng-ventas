@@ -16,6 +16,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Grupos opcionales: cada pieza instala solo lo que necesita (la imagen de Airflow no
+# necesita Streamlit, por ejemplo).
+dashboard = [
+    "streamlit>=1.40",
+    "pyyaml>=6.0",
+    # Base de zonas horarias: la imagen python:slim no la trae y Windows tampoco.
+    "tzdata>=2024.1",
+]
 dev = [
     "pytest>=8.3",
     "ruff>=0.8",
@@ -28,13 +36,13 @@ include = ["common*"]
 
 [tool.pytest.ini_options]
 testpaths = ["src/tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "dashboard"]
 addopts = "-ra"
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src"]
+src = ["src", "dashboard"]
 
 [tool.ruff.lint]
 # E/F: errores básicos · I: orden de imports · UP: sintaxis moderna

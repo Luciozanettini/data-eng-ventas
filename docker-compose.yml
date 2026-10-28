@@ -11,7 +11,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # "127.0.0.1:" = solo accesible desde TU PC. Sin eso Docker publica el puerto en todas
+      # las interfaces y cualquiera en tu misma red Wi-Fi podría intentar conectarse.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Volumen con nombre: los datos sobreviven a `docker compose down`.
       # Solo se borran con `docker compose down -v`.
@@ -36,8 +38,8 @@ services:
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
     ports:
-      - "9000:9000"   # API S3 (la que usa boto3)
-      - "9001:9001"   # Consola web para mirar los buckets
+      - "127.0.0.1:9000:9000"   # API S3 (la que usa boto3)
+      - "127.0.0.1:9001:9001"   # Consola web para mirar los buckets
     volumes:
       - s3_data:/data
     restart: unless-stopped
@@ -60,6 +62,37 @@ services:
       s3:
         condition: service_started
     restart: "no"
+
+  # Panel del proyecto: http://localhost:8501
+  dashboard:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      S3_ENDPOINT_URL: http://s3:9000
+      REPO_ROOT: /repo
+      # Usamos el código montado de /repo (y no la copia de la imagen) para ver cambios al instante.
+      PYTHONPATH: /repo/src:/repo/dashboard
+    # Desde esta carpeta Streamlit encuentra su configuración (.streamlit/config.toml).
+    working_dir: /repo/dashboard
+    command: ["streamlit", "run", "app.py"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      # El repo entero en SOLO LECTURA: el panel lo lee para el mapa, pero no puede modificarlo.
+      # (Incluye .env, pero el contenedor ya recibe esos valores vía env_file: no expone nada nuevo).
+      - .:/repo:ro
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
 
 volumes:
   pg_data:

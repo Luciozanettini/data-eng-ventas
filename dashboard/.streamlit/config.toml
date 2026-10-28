@@ -1,0 +1,19 @@
+[server]
+port = 8501
+address = "0.0.0.0"
+headless = true
+# Docker en Windows no le avisa al contenedor cuando cambiás un archivo:
+# "poll" revisa cada tanto si cambió algo y recarga solo.
+fileWatcherType = "poll"
+runOnSave = true
+
+[client]
+# Oculta el botón "Deploy" y el menú de desarrollador: este panel es solo para mirar.
+toolbarMode = "viewer"
+
+[browser]
+# No mandar estadísticas de uso a Streamlit (privacidad).
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#0f766e"

@@ -13,14 +13,13 @@ import sys
 import time
 from collections.abc import Callable
 
-import boto3
 import psycopg
 from botocore.client import BaseClient
-from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 from common.config import ConfigError, PostgresSettings, Settings, StorageSettings, load_settings
 from common.log import configure_logging, get_logger
+from common.s3 import make_s3_client
 
 log = get_logger(__name__)
 
@@ -62,18 +61,6 @@ def check_postgres(pg: PostgresSettings) -> str:
     version = with_retries(_connect, what="postgres", retry_on=(psycopg.OperationalError,))
     log.info("postgres ok", extra={"host": pg.host, "db": pg.db, "version": version.split(",")[0]})
     return version
-
-
-def make_s3_client(storage: StorageSettings) -> BaseClient:
-    return boto3.client(
-        "s3",
-        endpoint_url=storage.endpoint_url,
-        region_name=storage.region,
-        aws_access_key_id=storage.access_key,
-        aws_secret_access_key=storage.secret_key,
-        # En local usamos "path style" (http://host:9000/bucket) porque no hay DNS por bucket.
-        config=Config(s3={"addressing_style": "path"} if storage.endpoint_url else {}),
-    )
 
 
 def ensure_bucket(s3: BaseClient, bucket: str, region: str) -> bool:

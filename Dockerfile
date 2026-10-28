@@ -14,9 +14,10 @@ WORKDIR /app
 # el código pero no pyproject.toml, Docker reutiliza esta capa y el build es mucho más rápido.
 COPY pyproject.toml README.md ./
 COPY src ./src
-# Instalación "editable": docker-compose monta ./src encima, y los cambios que hagas
-# en tu PC se ven en el contenedor sin reconstruir la imagen.
-RUN pip install -e .
+COPY dashboard ./dashboard
+# Instalación "editable" con el extra del panel. En docker-compose montamos el repo
+# encima, y los cambios que hagas en tu PC se ven sin reconstruir la imagen.
+RUN pip install -e ".[dashboard]"
 
 # Correr como usuario sin privilegios: si alguien explota la app, no es root.
 RUN useradd --create-home --uid 1000 app

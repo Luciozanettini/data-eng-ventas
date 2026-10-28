@@ -1,0 +1,233 @@
+# Fuente única de verdad del panel: estado del proyecto, mapa, arquitectura y diario.
+# Al cerrar cada etapa se actualiza este archivo y el panel lo refleja solo.
+# Estados válidos: pendiente | en_construccion | listo
+# Un test (src/tests/test_project_meta.py) valida que este archivo sea coherente con el repo.
+
+stages:
+  - {number: 0, name: "Preparar la PC (WSL2 + Docker)", status: listo}
+  - {number: 1, name: "Base del repo + entorno Docker", status: listo}
+  - {number: 2, name: "Panel visual (Streamlit)", status: listo}
+  - {number: 3, name: "Ingesta (bronze)", status: pendiente}
+  - {number: 4, name: "Transformaciones con dbt (silver/gold)", status: pendiente}
+  - {number: 5, name: "Orquestación con Airflow", status: pendiente}
+  - {number: 6, name: "Tests y calidad de datos", status: pendiente}
+  - {number: 7, name: "Infraestructura AWS con Terraform", status: pendiente}
+  - {number: 8, name: "CI/CD con GitHub Actions", status: pendiente}
+
+# --- Mapa del proyecto -------------------------------------------------------
+# Las carpetas terminan en "/". El orden de esta lista es el orden del árbol.
+map:
+  - path: README.md
+    stage: 1
+    status: listo
+    description: "Portada del proyecto: qué es, cómo levantarlo, decisiones tomadas y la sección «Qué aprendimos»."
+  - path: .env.example
+    stage: 1
+    status: listo
+    description: "Plantilla de configuración con nombres de variables y valores de ejemplo. Tu .env real (con secretos) se crea a partir de esta y nunca se sube a git."
+  - path: .gitignore
+    stage: 1
+    status: listo
+    description: "Lista de lo que git debe ignorar: secretos (.env), entornos virtuales, estado de Terraform y datos generados."
+  - path: docker-compose.yml
+    stage: 1
+    status: listo
+    description: "Define todos los servicios locales (Postgres, S3 local, init, panel) y cómo se conectan. Se levanta con «docker compose up -d»."
+  - path: Dockerfile
+    stage: 1
+    status: listo
+    description: "Receta de la imagen con nuestro código Python. La usan el chequeo de arranque, el panel y, más adelante, la ingesta."
+  - path: pyproject.toml
+    stage: 1
+    status: listo
+    description: "Dependencias del proyecto y configuración de herramientas (ruff para estilo y errores, pytest para tests)."
+  - path: dashboard/
+    stage: 2
+    status: en_construccion
+    description: "Este panel (Streamlit, en http://localhost:8501). Suma secciones en cada etapa, así que queda «en construcción» hasta el final."
+  - path: dashboard/project.yml
+    stage: 2
+    status: listo
+    description: "Fuente de verdad del panel: etapas, este mapa, el diagrama de arquitectura y el diario."
+  - path: src/
+    stage: 1
+    status: en_construccion
+    description: "Todo el código del pipeline, organizado por responsabilidad."
+  - path: src/common/
+    stage: 1
+    status: listo
+    description: "Piezas compartidas: configuración desde variables de entorno, logging en JSON, cliente S3 y el chequeo de arranque. (No estaba en la estructura original: evita repetir código en cada módulo)."
+  - path: src/ingestion/
+    stage: 3
+    status: pendiente
+    description: "Extrae datos de las fuentes y los guarda crudos en la capa bronze."
+  - path: src/ingestion/api_extractor.py
+    stage: 3
+    status: pendiente
+    description: "Ingesta por lotes: pide las ventas de un día a una API y las guarda en bronze, particionadas por fecha. Idempotente: reintentar no duplica."
+  - path: src/ingestion/stream_consumer.py
+    stage: 3
+    status: pendiente
+    description: "Ingesta casi en tiempo real: procesa eventos de ventas en micro-lotes de pocos segundos."
+  - path: src/dags/
+    stage: 5
+    status: pendiente
+    description: "DAGs de Airflow: definen qué tareas corren, en qué orden y cuándo."
+  - path: src/dags/daily_sales_dag.py
+    stage: 5
+    status: pendiente
+    description: "Pipeline diario: ingesta → dbt → tests de calidad, todos los días."
+  - path: src/dags/backfill_dag.py
+    stage: 5
+    status: pendiente
+    description: "Reprocesa un rango de fechas del pasado (backfill), por ejemplo si se corrigió un bug."
+  - path: src/transform/
+    stage: 4
+    status: pendiente
+    description: "Proyecto dbt: transforma los datos con SQL versionado y testeado."
+  - path: src/transform/models/
+    stage: 4
+    status: pendiente
+    description: "Modelos dbt, uno por tabla de salida."
+  - path: src/transform/models/stg_orders.sql
+    stage: 4
+    status: pendiente
+    description: "Capa silver: órdenes limpias, con tipos correctos y sin duplicados."
+  - path: src/transform/models/fct_sales.sql
+    stage: 4
+    status: pendiente
+    description: "Capa gold: tabla de hechos de ventas lista para métricas (ventas por día, producto, etc.)."
+  - path: src/tests/
+    stage: 1
+    status: en_construccion
+    description: "Tests automáticos del código y de los datos."
+  - path: src/tests/test_config.py
+    stage: 1
+    status: listo
+    description: "Tests de la configuración y del logging (variables faltantes, secretos ocultos, etc.)."
+  - path: src/tests/test_project_meta.py
+    stage: 2
+    status: listo
+    description: "Valida que este project.yml sea coherente: estados válidos y que todo lo marcado como «listo» exista de verdad."
+  - path: src/tests/test_transforms.py
+    stage: 6
+    status: pendiente
+    description: "Tests de la lógica de transformación con datos de ejemplo chiquitos."
+  - path: src/tests/data_quality.yml
+    stage: 6
+    status: pendiente
+    description: "Reglas de calidad de datos: no nulos, únicos, rangos válidos, frescura."
+  - path: src/infra/
+    stage: 7
+    status: pendiente
+    description: "Infraestructura de AWS como código (Terraform)."
+  - path: src/infra/main.tf
+    stage: 7
+    status: pendiente
+    description: "Recursos de AWS: buckets S3 por capa, Glue Data Catalog, Athena e IAM con mínimo privilegio."
+  - path: src/infra/variables.tf
+    stage: 7
+    status: pendiente
+    description: "Parámetros de la infraestructura (región, prefijo de buckets, entorno)."
+  - path: .github/
+    stage: 8
+    status: pendiente
+    description: "Configuración de GitHub."
+  - path: .github/workflows/
+    stage: 8
+    status: pendiente
+    description: "Pipelines de CI/CD con GitHub Actions."
+  - path: .github/workflows/ci.yml
+    stage: 8
+    status: pendiente
+    description: "En cada push: ruff, pytest, dbt parse y terraform validate."
+  - path: .github/workflows/deploy.yml
+    stage: 8
+    status: pendiente
+    description: "Despliegue a AWS, manual y con aprobación, sin claves guardadas (OIDC)."
+
+# --- Arquitectura ------------------------------------------------------------
+architecture:
+  nodes:
+    - {id: api, label: "API de ventas", detail: "fuente por lotes", stage: 3, status: pendiente}
+    - {id: eventos, label: "Eventos de ventas", detail: "fuente continua", stage: 3, status: pendiente, align_with: api}
+    - {id: batch, label: "api_extractor", detail: "ingesta diaria", stage: 3, status: pendiente}
+    - {id: stream, label: "stream_consumer", detail: "micro-lotes", stage: 3, status: pendiente}
+    - {id: bronze, label: "BRONZE", detail: "S3 · datos crudos", stage: 1, status: en_construccion}
+    - {id: silver, label: "SILVER", detail: "stg_orders · limpio", stage: 4, status: pendiente}
+    - {id: gold, label: "GOLD", detail: "fct_sales · métricas", stage: 4, status: pendiente}
+    - {id: panel, label: "Panel", detail: "Streamlit :8501", stage: 2, status: en_construccion}
+    - {id: athena, label: "Athena", detail: "SQL sobre S3 (AWS)", stage: 7, status: pendiente}
+    # align_with: se dibuja en la misma fila que ese nodo (al costado del flujo principal).
+    - {id: airflow, label: "Airflow", detail: "orquesta y agenda", stage: 5, status: pendiente, align_with: stream}
+    - {id: calidad, label: "Calidad", detail: "dbt tests + data_quality", stage: 6, status: pendiente, align_with: silver}
+  edges:
+    # kind: data (flujo de datos, línea llena) | control (quién dispara/valida, línea punteada)
+    - {from: api, to: batch, kind: data}
+    - {from: eventos, to: stream, kind: data}
+    - {from: batch, to: bronze, kind: data}
+    - {from: stream, to: bronze, kind: data}
+    - {from: bronze, to: silver, kind: data}
+    - {from: silver, to: gold, kind: data}
+    - {from: gold, to: panel, kind: data}
+    - {from: gold, to: athena, kind: data}
+    - {from: airflow, to: batch, kind: control}
+    - {from: airflow, to: silver, kind: control}
+    - {from: calidad, to: silver, kind: control}
+    - {from: calidad, to: gold, kind: control}
+
+# --- Diario de aprendizaje ---------------------------------------------------
+diary:
+  - stage: 0
+    date: 2026-10-27
+    title: "Preparar la PC"
+    built:
+      - "Activamos la virtualización (SVM Mode) en la BIOS de la ASUS PRIME A520M-K."
+      - "Instalamos WSL2 y Docker Desktop 4.97; hello-world funcionó."
+    decisions:
+      - "Local con Docker en vez de GitHub Codespaces: gratis, sin conexión y con 32 GB de RAM de sobra."
+    learned:
+      - "Docker corre cada herramienta en un contenedor aislado; en Windows lo hace sobre WSL2."
+      - "WSL2 es una máquina virtual: necesita la virtualización del procesador activada en la BIOS."
+  - stage: 1
+    date: 2026-10-27
+    title: "Base del repo y entorno Docker"
+    built:
+      - "Estructura de carpetas, .gitignore, .gitattributes, .env.example y pyproject.toml."
+      - "docker-compose con Postgres 16, RustFS (S3 local) y un servicio init que crea los buckets."
+      - "Config por variables de entorno, logging JSON y healthcheck con reintentos."
+    decisions:
+      - "RustFS en vez de MinIO: MinIO dejó de publicar imágenes de Docker."
+      - "Sin Kafka/Redpanda: para ventas simuladas alcanzan los micro-lotes."
+      - "Versiones de imágenes fijas, nunca :latest."
+    learned:
+      - "Idempotencia: correr el init dos veces da el mismo resultado (was_created: false)."
+      - "Dentro de Docker los servicios se llaman por nombre (postgres, s3), no localhost."
+      - "ruff detectó un bug real: «created» es un campo reservado de los logs de Python."
+  - stage: 2
+    date: 2026-10-28
+    title: "Panel visual"
+    built:
+      - "Panel Streamlit en http://localhost:8501, levantado con el mismo docker compose up."
+      - "Secciones: Mapa del proyecto, Arquitectura, Diario y Datos (estado real de Postgres y buckets)."
+      - "Pipelines, Calidad e Infraestructura quedan visibles con lo que van a mostrar."
+    decisions:
+      - "Toda la información del panel sale de un único project.yml, validado por un test."
+      - "El panel solo LEE: no modifica datos ni infraestructura."
+      - "Streamlit en vez de un frontend (React, etc.): Python puro, cero HTML/JS."
+    learned:
+      - "Separar datos (project.yml) de presentación (páginas) hace que el panel crezca sin tocar código."
+      - "Cachear consultas (st.cache_data con TTL) evita golpear la base en cada clic."
+      - "En Windows, Docker no avisa los cambios de archivos al contenedor: Streamlit usa «poll» para recargar."
+
+# estado: pendiente | hecha | descartada
+suggestions:
+  - {title: "Alerta de AWS Budgets (USD 5)", stage: 0, effort: "5 min", benefit: "Alto", status: pendiente}
+  - {title: "MFA en la cuenta raíz de AWS", stage: 0, effort: "5 min", benefit: "Alto", status: pendiente}
+  - {title: "Revisar historial de planetario-movil-infra (tfvars/backend.hcl)", stage: 0, effort: "10 min", benefit: "Medio", status: pendiente}
+  - {title: "pre-commit con ruff", stage: 1, effort: "15 min", benefit: "Medio", status: pendiente}
+  - {title: "Usuarios de Postgres por rol (dbt / solo lectura)", stage: 1, effort: "30 min", benefit: "Medio", status: pendiente}
+  - {title: "Subir el repo a GitHub", stage: 1, effort: "5 min", benefit: "Alto", status: hecha}
+  - {title: "Usuario de solo lectura para el panel", stage: 2, effort: "20 min", benefit: "Medio", status: pendiente}
+  - {title: "Captura del panel en el README (portfolio)", stage: 2, effort: "10 min", benefit: "Medio", status: pendiente}
+  - {title: "Marcar estados automáticamente desde git", stage: 2, effort: "1 h", benefit: "Bajo", status: pendiente}
