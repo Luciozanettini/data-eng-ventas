@@ -1,0 +1,8 @@
+# Estamos en Windows pero los contenedores son Linux. Un script con fin de línea
+# Windows (CRLF) falla adentro del contenedor con errores raros ("\r: command not found").
+# Forzamos LF en todo el repo para evitarlo.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.parquet binary

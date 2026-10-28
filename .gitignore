@@ -1,0 +1,46 @@
+# --- Secretos: NUNCA al repo ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- dbt (etapa 4) ---
+src/transform/target/
+src/transform/dbt_packages/
+src/transform/logs/
+
+# --- Airflow (etapa 5) ---
+logs/
+airflow.db
+
+# --- Terraform (etapa 7) ---
+# El estado puede contener secretos y IDs de tu cuenta: nunca se versiona.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.tfplan
+crash.log
+
+# --- Datos locales generados ---
+data/
+
+# --- Editor / SO ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

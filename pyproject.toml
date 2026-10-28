@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-eng-ventas"
+version = "0.1.0"
+description = "Proyecto personal de data engineering: pipeline de ventas por capas, local con Docker y en AWS con Terraform."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # boto3 habla el protocolo S3: el mismo código sirve para RustFS (local) y para AWS S3.
+    "boto3>=1.35",
+    # psycopg 3 con binarios incluidos: no hace falta instalar librerías de Postgres en Windows.
+    "psycopg[binary]>=3.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# Se irán sumando paquetes por etapa (ingestion, etc.) a medida que tengan código.
+include = ["common*"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+# E/F: errores básicos · I: orden de imports · UP: sintaxis moderna
+# B: bugs comunes · SIM: simplificaciones · LOG/G: buenas prácticas de logging
+select = ["E", "F", "I", "UP", "B", "SIM", "LOG", "G"]
